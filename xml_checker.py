@@ -1,8 +1,13 @@
 import argparse
 import re
 import sys
-import xml.etree.ElementTree as ET
+from lxml import etree
 from pathlib import Path
+
+RED = "\033[91m"
+GREEN = "\033[92m"
+YELLOW = "\033[93m"
+RESET = "\033[0m"
 
 
 def get_xhtml_doctype_prepender() -> str:
@@ -20,19 +25,19 @@ def get_xhtml_doctype_prepender() -> str:
 
 def print_disclaimer(fname: str) -> None:
     """Prints a disclaimer explaining the DOCTYPE substitution."""
-    print("\n=======================================")
+    print(f"\n{YELLOW}=======================================")
     print(f"Disclaimer: This program replaced file '{fname}'s")
     print("<!DOCTYPE ...> line with a special html5")
     print("DOCTYPE line while evaluating. The original")
     print("file has not been changed. It's possible")
     print("this program might be inaccurate if the")
     print("original file had a non-html5 DOCTYPE line.")
-    print("=======================================\n")
+    print(f"======================================={RESET}\n")
 
 
 def abort_on_crazy_doctype(doctype_line: str) -> None:
     """Aborts the script with an error message when an invalid DOCTYPE is found."""
-    print(f"\nThis file's doctype line is: {doctype_line.strip()}")
+    print(f"\n{RED}Error: This file's doctype line is invalid: {doctype_line.strip()}")
     print("The XML Checker program works only on doctypes that:")
     print('    Begin with "<!doctype", case irrelevant')
     print('    Have exactly one ">" character')
@@ -40,7 +45,7 @@ def abort_on_crazy_doctype(doctype_line: str) -> None:
     print("This error might not indicate mal-formed XML,")
     print("It might just mean that the XML Checker program")
     print("can't be run on this file with its current")
-    print("<!DOCTYPE line.\n")
+    print(f"<!DOCTYPE line.{RESET}\n")
     sys.exit(1)
 
 
@@ -66,10 +71,10 @@ def read_and_prepare_xml(fname: str) -> str:
         with open(fname, "r", encoding="utf-8") as f:
             lines = f.readlines()
     except FileNotFoundError:
-        print(f"ERROR: File '{fname}' not found.", file=sys.stderr)
+        print(f"{RED}Error: File '{fname}' not found.{RESET}", file=sys.stderr)
         sys.exit(1)
     except IOError as e:
-        print(f"ERROR: Could not read file '{fname}': {e}", file=sys.stderr)
+        print(f"{RED}Error: Could not read file '{fname}': {e}{RESET}", file=sys.stderr)
         sys.exit(1)
     
     valid_lines = [line for line in lines if is_eligible_line(line)]
@@ -77,20 +82,29 @@ def read_and_prepare_xml(fname: str) -> str:
 
 
 def check_xml_compliance(fname: str) -> None:
-    """Checks if the provided file is well-formed XML."""
-    print(f"\nTesting for well-formedness {fname} ...\n")
+    """Checks if the provided file is well-formed XML and reports every error if not."""
+    print(f"\nTesting for well-formedness: {fname} ...\n")
     
     xml_string = read_and_prepare_xml(fname)
     
     try:
-        ET.fromstring(xml_string)
-    except ET.ParseError as err:
-        print(f"ERROR: {err} !!!!!!")
+        parser = etree.XMLParser(recover=True)
+        etree.fromstring(xml_string.encode('utf-8'), parser)
+        
+        errors = parser.error_log
+        if errors:
+            print(f"{RED}Error: Found {len(errors)} error(s) in {fname}.{RESET}")
+            for i, error in enumerate(errors, 1):
+                print(f"  {i}. Line {error.line}, Column {error.column}: {error.message}")
+            print_disclaimer(fname)
+            sys.exit(1)
+        else:
+            print(f"{GREEN}Success: {fname} is well-formed XML.{RESET}")
+            print_disclaimer(fname)
+    except Exception as err:
+        print(f"{RED}Error: {err}{RESET}")
         print_disclaimer(fname)
         sys.exit(1)
-    else:
-        print(f"CONGRATULATIONS: {fname} is well formed XML!!!!!!")
-        print_disclaimer(fname)
 
 
 def main() -> None:
