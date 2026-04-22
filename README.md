@@ -57,6 +57,18 @@ From a technical standpoint, `pyxmlcheck` performs the following workflow:
 3. **Parsing and Error Recovery**: Passes the modified string to `lxml.etree.XMLParser(recover=True)`. This allows the parser to construct as much of the DOM as possible while accumulating an `error_log` of all structural violations.
 4. **Reporting**: Iterates through the `error_log` and outputs color-coded, exact line-and-column error messages to the console.
 
+## Contributing
+
+Contributions are welcome! Please see [`CONTRIBUTING.md`](CONTRIBUTING.md) for guidelines.
+
+## Security
+
+If you discover a security vulnerability, please follow the instructions in [`SECURITY.md`](SECURITY.md).
+
+## Code of Conduct
+
+This project adheres to the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## License
 
 Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for more information.
