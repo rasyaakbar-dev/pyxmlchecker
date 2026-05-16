@@ -2,14 +2,14 @@
 
 ## Description
 
-**[`pyxmlcheck`](pyxmlcheck)** is a developer-centric CLI tool designed to validate the well-formedness of XML and HTML files. Unlike standard parsers that halt at the first encountered error, `pyxmlcheck` leverages `lxml`'s recovery mode to scan the entire document, reporting all structural issues (e.g., mismatched or unclosed tags) in a single pass.
+**[`pyxmlcheck`](pyxmlcheck)** is a developer-centric CLI tool designed to validate the well-formedness of XML and HTML files. Unlike standard parsers that halt at the first encountered error, `pyxmlcheck` uses an incremental re-parsing strategy to scan the entire document, reporting all structural issues (e.g., mismatched or unclosed tags) in a single pass — with **zero external dependencies**.
 
 A key feature of this tool is its intelligent DOCTYPE handling. Many HTML files contain entities (like `&nbsp;`, `&copy;`) that standard XML parsers fail to recognize, leading to false-positive errors. `pyxmlcheck` solves this by seamlessly injecting a custom XHTML DOCTYPE with these entity definitions directly into the in-memory string before parsing, without mutating the original file or altering the reported error line numbers.
 
 ## Requirements
 
 - Python 3.6+
-- `lxml`
+- No external dependencies (uses only Python standard library modules)
 
 ## Installation
 
@@ -19,10 +19,9 @@ Clone the repository and install the required dependency using `pip`:
 # Clone the repository
 git clone https://github.com/rasyaakbar-dev/pyxmlchecker.git
 cd pyxmlchecker
-
-# Install requirements
-pip install lxml
 ```
+
+No additional installation steps are needed — `pyxmlcheck` uses only Python standard library modules.
 
 ## Usage
 
@@ -54,8 +53,8 @@ From a technical standpoint, `pyxmlcheck` performs the following workflow:
    - If found, it is replaced with a comprehensive XHTML DOCTYPE containing common HTML entity definitions.
    - **Line Number Preservation**: Crucially, the script counts the newlines in the original DOCTYPE and appends them to the injected single-line DOCTYPE. This guarantees that the line numbers reported by the parser perfectly match the original file.
    - If no DOCTYPE is found, it prepends the custom DOCTYPE on the very first line without a trailing newline.
-3. **Parsing and Error Recovery**: Passes the modified string to `lxml.etree.XMLParser(recover=True)`. This allows the parser to construct as much of the DOM as possible while accumulating an `error_log` of all structural violations.
-4. **Reporting**: Iterates through the `error_log` and outputs color-coded, exact line-and-column error messages to the console.
+3. **Incremental Parsing and Error Recovery**: Feeds the modified string to Python's built-in `xml.parsers.expat` parser. On each error, it records the error details (line, column, message), then creates a fresh parser and feeds the remaining content (from after the error line) to discover additional errors.
+4. **Reporting**: Iterates through the collected errors, deduplicates them, and outputs color-coded, exact line-and-column error messages to the console.
 
 ## Contributing
 

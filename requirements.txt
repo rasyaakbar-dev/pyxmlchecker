@@ -1,1 +1,1 @@
-lxml
+# No external dependencies — uses only Python standard library modules.
